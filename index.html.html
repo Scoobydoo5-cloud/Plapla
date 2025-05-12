@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gửi vị trí lên Google Sheets</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      text-align: center;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    a#sendLocation {
+      display: inline-block;
+      padding: 15px 25px;
+      background: #ff6f61;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: background-color 0.3s ease;
+    }
+    a#sendLocation:hover {
+      background: #ff3b2e;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 1.1em;
+      min-height: 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gửi vị trí của bạn về Google Sheets</h1>
+  <a href="#" id="sendLocation">Gửi vị trí của tôi</a>
+  <div id="status"></div>
+
+  <script>
+    const sendButton = document.getElementById('sendLocation');
+    const statusDiv = document.getElementById('status');
+
+    // Thay URL bên dưới bằng URL Web App của bạn
+    const WEB_APP_URL = https://script.google.com/macros/s/AKfycbyNUu2mU4mEUq3iHZG0z6yS2NLSqF6iO-DqoFAnAKvQftfeYZcu-6k1dVD-9fawTlfX/exec;
+
+    sendButton.addEventListener('click', function(event) {
+      event.preventDefault();
+      statusDiv.textContent = 'Đang lấy vị trí của bạn...';
+
+      if (!navigator.geolocation) {
+        statusDiv.textContent = 'Trình duyệt của bạn không hỗ trợ lấy vị trí.';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(success, error, {enableHighAccuracy: true, timeout: 10000, maximumAge: 0});
+
+      function success(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        statusDiv.textContent = 'Đang gửi vị trí lên Google Sheets...';
+
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({latitude, longitude}),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if(data.status === 'success') {
+            statusDiv.textContent = 'Vị trí của bạn đã được gửi thành công!';
+          } else {
+            statusDiv.textContent = 'Có lỗi khi gửi vị trí: ' + (data.message || '');
+          }
+        })
+        .catch(err => {
+          statusDiv.textContent = 'Lỗi mạng hoặc không thể gửi vị trí.';
+          console.error(err);
+        });
+      }
+
+      function error(err) {
+        switch(err.code) {
+          case err.PERMISSION_DENIED:
+            statusDiv.textContent = 'Bạn đã từ chối chia sẻ vị trí.';
+            break;
+          case err.POSITION_UNAVAILABLE:
+            statusDiv.textContent = 'Không thể lấy vị trí hiện tại.';
+            break;
+          case err.TIMEOUT:
+            statusDiv.textContent = 'Quá thời gian chờ lấy vị trí.';
+            break;
+          default:
+            statusDiv.textContent = 'Lỗi khi lấy vị trí: ' + err.message;
+            break;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
